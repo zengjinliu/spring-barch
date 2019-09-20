@@ -1,0 +1,372 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:aop="http://www.springframework.org/schema/aop" xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+		http://www.springframework.org/schema/beans/spring-beans-4.3.xsd
+		http://www.springframework.org/schema/mvc 
+		http://www.springframework.org/schema/mvc/spring-mvc-4.3.xsd
+		http://www.springframework.org/schema/context 
+		http://www.springframework.org/schema/context/spring-context-4.3.xsd
+		http://www.springframework.org/schema/aop 
+		http://www.springframework.org/schema/aop/spring-aop-4.3.xsd
+		http://www.springframework.org/schema/tx 
+		http://www.springframework.org/schema/tx/spring-tx-4.3.xsd ">
+
+    <bean id="springContextUtils" class="cn.kiway.common.jc.utils.SpringContextUtils"></bean>
+
+    <!-- DataSource -->
+    <bean id="dataSource" class="org.springframework.jndi.JndiObjectFactoryBean">
+        <property name="jndiName">
+            <value>java:comp/env/jdbc/kwmdb</value>
+        </property>
+    </bean>
+
+    <!-- 加载配置文件 -->
+    <context:property-placeholder location="classpath:config.properties"/>
+    <!-- 扫描文件（自动将servicec层注入） 添加exclude-filter是防止扫描到controller注解导致事务失败-->
+    <context:component-scan base-package="cn.kiway,log,interf,xqfcx">
+        <context:include-filter type="annotation" expression="org.springframework.context.annotation.Configuration"/>
+        <context:exclude-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+    </context:component-scan>
+    <!-- 织入切面 刘玉祥 cglib 代理，并且暴露代理类 -->
+    <aop:aspectj-autoproxy proxy-target-class="true" expose-proxy="true"/>
+
+    <!--<bean class="cn.kiway.common.utils.SpringContextHolder" lazy-init="false" />  -->
+
+
+    <!-- jasper 报表bean -->
+    <!-- jasper html导出 -->
+    <bean id="exporter" class="net.sf.jasperreports.engine.export.HtmlExporter"></bean>
+    <!-- jasper pdf导出 -->
+    <bean id="pdfExporter" class="net.sf.jasperreports.engine.export.JRPdfExporter"></bean>
+    <!-- jasper docx导出 -->
+    <bean id="docxExporter" class="net.sf.jasperreports.engine.export.ooxml.JRDocxExporter"></bean>
+    <!-- jasper excel导出 -->
+    <bean id="xlsxExporter" class="net.sf.jasperreports.engine.export.ooxml.JRXlsxExporter"></bean>
+
+    <!-- 获取局部批量sqlSeesion -->
+    <bean id="batchSqlSession" class="org.mybatis.spring.SqlSessionTemplate" scope="prototype">
+        <constructor-arg index="0" ref="sqlSessionFactory"/>
+        <constructor-arg index="1" ref="batchExecutorType"/>
+    </bean>
+
+    <!-- 注入枚举 -->
+    <bean id="batchExecutorType" class="org.springframework.beans.factory.config.FieldRetrievingFactoryBean">
+        <property name="staticField" value="org.apache.ibatis.session.ExecutorType.BATCH"></property>
+    </bean>
+
+    <!-- sqlSessinFactory -->
+    <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="plugins">
+            <array>
+                <bean class="com.github.pagehelper.PageInterceptor">
+                    <property name="properties">
+                        <value>
+                            <!--配置分页插件方言，默认为自动选择合适的分页方式-->
+                            <!--helperDialect=oracle-->
+                            reasonable=true
+                            supportMethodsArguments=true
+                            <!--设置别名-->
+                            params=count=countSql
+                            <!--允许在运行时根据多数据源自动识别对应方言的分页-->
+                            autoRuntimeDialect=true
+                        </value>
+                    </property>
+                </bean>
+            </array>
+        </property>
+
+        <!-- 数据源 -->
+        <property name="dataSource" ref="dataSource"/>
+        <property name="configLocation" value="classpath:config/SqlMapConfig.xml"/>
+        <property name="mapperLocations" value="classpath*:cn/kiway/**/mapper/*.xml"/>
+        <property name="databaseIdProvider" ref="databaseIdProvider"/>
+    </bean>
+    <!-- mapper批量扫描，从mapper包中扫描出mapper接口，自动创建代理对象并且在spring容器中注册
+    遵循规范：将mapper.java和mapper.xml映射文件名称保持一致，且在一个目录 中
+    自动扫描出来的mapper的bean的id为mapper类名（首字母小写）
+    -->
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <!-- 指定扫描的包名
+        如果扫描多个包，每个包中间使用半角逗号分隔
+        -->
+        <property name="basePackage" value="cn.kiway.*.*.mapper"/>
+        <property name="sqlSessionFactoryBeanName" value="sqlSessionFactory"/>
+    </bean>
+
+    <bean id="vendorProperties"
+          class="org.springframework.beans.factory.config.PropertiesFactoryBean">
+        <property name="properties">
+            <props>
+                <prop key="Oracle">oracle</prop>
+                <prop key="MySQL">mysql</prop>
+            </props>
+        </property>
+    </bean>
+    <bean id="databaseIdProvider" class="org.apache.ibatis.mapping.VendorDatabaseIdProvider">
+        <property name="properties" ref="vendorProperties"/>
+    </bean>
+
+
+    <!-- 事务管理器 对mybatis操作数据库事务控制，spring使用jdbc的事务控制类 -->
+    <bean id="transactionManager"
+          class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="dataSource"/>
+    </bean>
+
+
+    <tx:annotation-driven transaction-manager="transactionManager"/>
+
+    <tx:advice id="txAdvice" transaction-manager="transactionManager">
+        <tx:attributes>
+            <tx:method name="save*" propagation="REQUIRED" rollback-for="Exception"/>
+            <tx:method name="add*" propagation="REQUIRED" rollback-for="Exception"/>
+            <tx:method name="recur*" propagation="REQUIRED" rollback-for="Exception"/>
+            <tx:method name="do*" propagation="REQUIRED" rollback-for="Exception"/>
+            <tx:method name="create*" propagation="REQUIRED" rollback-for="Exception"/>
+            <tx:method name="insert*" propagation="REQUIRED" rollback-for="Exception"/>
+            <tx:method name="update*" propagation="REQUIRED" rollback-for="Exception"/>
+            <tx:method name="merge*" propagation="REQUIRED" rollback-for="Exception"/>
+            <tx:method name="delete*" propagation="REQUIRED" rollback-for="Exception"/>
+            <tx:method name="remove*" propagation="REQUIRED" rollback-for="Exception"/>
+            <tx:method name="put*" propagation="REQUIRED" rollback-for="Exception"/>
+            <tx:method name="publish*" propagation="REQUIRED" rollback-for="Exception"/>
+            <tx:method name="use*" propagation="REQUIRED" rollback-for="Exception"/>
+            <tx:method name="get*" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="count*" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="find*" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="list*" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="page*" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="select*" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="*" read-only="true"/>
+        </tx:attributes>
+    </tx:advice>
+    <aop:config expose-proxy="true">
+        <!-- 只对业务逻辑层实施事务 -->
+        <aop:pointcut id="txPointcut" expression="execution(* cn.kiway..service..*.*(..))"/>
+        <aop:advisor advice-ref="txAdvice" pointcut-ref="txPointcut"/>
+    </aop:config>
+
+
+    <!--第二个数据源  -->
+    <bean id="dataSourceLog" class="org.springframework.jndi.JndiObjectFactoryBean">
+        <property name="jndiName">
+            <value>java:comp/env/jdbc/kwmlog</value>
+        </property>
+    </bean>
+
+    <!-- sqlSessinFactory -->
+    <bean id="sqlSessionFactoryLog" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <!-- 数据源 -->
+        <property name="dataSource" ref="dataSourceLog"/>
+        <property name="configLocation" value="classpath:config/SqlMapConfig.xml"/>
+        <property name="mapperLocations" value="classpath*:log/mapper/*.xml"/>
+    </bean>
+
+
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <!-- 指定扫描的包名
+        如果扫描多个包，每个包中间使用半角逗号分隔
+        -->
+        <property name="basePackage" value="log.mapper"/>
+        <property name="sqlSessionFactoryBeanName" value="sqlSessionFactoryLog"/>
+    </bean>
+
+    <!-- 事务管理器 对mybatis操作数据库事务控制，spring使用jdbc的事务控制类 -->
+    <bean id="transactionManagerLog"
+          class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="dataSourceLog"/>
+    </bean>
+    <tx:annotation-driven transaction-manager="transactionManagerLog"/>
+
+    <!--配置事务的传播特性 -->
+    <tx:advice id="txAdviceLog" transaction-manager="transactionManagerLog">
+        <tx:attributes>
+            <tx:method name="save*" propagation="REQUIRED"/>
+            <tx:method name="add*" propagation="REQUIRED"/>
+            <tx:method name="recur*" propagation="REQUIRED"/>
+            <tx:method name="do*" propagation="REQUIRED"/>
+            <tx:method name="create*" propagation="REQUIRED"/>
+            <tx:method name="insert*" propagation="REQUIRED"/>
+            <tx:method name="update*" propagation="REQUIRED"/>
+            <tx:method name="merge*" propagation="REQUIRED"/>
+            <tx:method name="delete*" propagation="REQUIRED"/>
+            <tx:method name="remove*" propagation="REQUIRED"/>
+            <tx:method name="put*" propagation="REQUIRED"/>
+            <tx:method name="publish*" propagation="REQUIRED"/>
+            <tx:method name="use*" propagation="REQUIRED"/>
+            <tx:method name="get*" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="count*" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="find*" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="page*" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="list*" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="select*" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="*" read-only="true"/>
+        </tx:attributes>
+    </tx:advice>
+    <aop:aspectj-autoproxy proxy-target-class="true"/>
+    <!--那些类的哪些方法参与事务 -->
+    <aop:config>
+        <aop:advisor advice-ref="txAdviceLog"
+                     pointcut="execution (* log.service..*.*(..))"/>
+    </aop:config>
+
+    <!--第三个数据源  -->
+    <bean id="dataSourceInterface" class="org.springframework.jndi.JndiObjectFactoryBean">
+        <property name="jndiName">
+            <value>java:comp/env/jdbc/kwmjk</value>
+        </property>
+    </bean>
+    <!-- sqlSessinFactory -->
+    <bean id="sqlSessionFactoryInterf" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <!-- 数据源 -->
+        <property name="dataSource" ref="dataSourceInterface"/>
+        <property name="configLocation" value="classpath:config/SqlMapConfig.xml"/>
+        <property name="mapperLocations" value="classpath*:interf/mapper/*.xml"/>
+    </bean>
+
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <!-- 指定扫描的包名
+        如果扫描多个包，每个包中间使用半角逗号分隔
+        -->
+        <property name="basePackage" value="interf.mapper"/>
+        <property name="sqlSessionFactoryBeanName" value="sqlSessionFactoryInterf"/>
+    </bean>
+
+    <!-- 事务管理器 对mybatis操作数据库事务控制，spring使用jdbc的事务控制类 -->
+    <bean id="transactionManagerInterf"
+          class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="dataSourceInterface"/>
+    </bean>
+    <tx:annotation-driven transaction-manager="transactionManagerInterf"/>
+
+    <!--配置事务的传播特性 -->
+    <tx:advice id="txAdviceInterf" transaction-manager="transactionManagerInterf">
+        <tx:attributes>
+            <tx:method name="save*" propagation="REQUIRED"/>
+            <tx:method name="add*" propagation="REQUIRED"/>
+            <tx:method name="recur*" propagation="REQUIRED"/>
+            <tx:method name="do*" propagation="REQUIRED"/>
+            <tx:method name="create*" propagation="REQUIRED"/>
+            <tx:method name="insert*" propagation="REQUIRED"/>
+            <tx:method name="update*" propagation="REQUIRED"/>
+            <tx:method name="merge*" propagation="REQUIRED"/>
+            <tx:method name="delete*" propagation="REQUIRED"/>
+            <tx:method name="remove*" propagation="REQUIRED"/>
+            <tx:method name="put*" propagation="REQUIRED"/>
+            <tx:method name="publish*" propagation="REQUIRED"/>
+            <tx:method name="use*" propagation="REQUIRED"/>
+            <tx:method name="get*" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="count*" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="find*" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="page*" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="list*" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="select*" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="*" read-only="true"/>
+        </tx:attributes>
+    </tx:advice>
+    <aop:aspectj-autoproxy proxy-target-class="true"/>
+    <!--那些类的哪些方法参与事务 -->
+    <aop:config>
+        <aop:advisor advice-ref="txAdviceInterf"
+                     pointcut="execution (* interf.service..*.*(..))"/>
+    </aop:config>
+
+    <!--
+    <bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+        <property name="maxUploadSize" value="20480000" />
+    </bean>
+     -->
+    <!--第四个数据源  -->
+    <bean id="dataSourceXqfcx" class="org.springframework.jndi.JndiObjectFactoryBean">
+        <property name="jndiName">
+            <value>java:comp/env/jdbc/kwmxqfcx</value>
+        </property>
+    </bean>
+    <!-- sqlSessinFactory -->
+    <bean id="sqlSessionFactoryXqfcx" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <!-- 数据源 -->
+        <property name="dataSource" ref="dataSourceInterface"/>
+        <property name="configLocation" value="classpath:config/SqlMapConfig.xml"/>
+        <property name="mapperLocations" value="classpath*:xqfcx/mapper/*.xml"/>
+    </bean>
+
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <!-- 指定扫描的包名
+        如果扫描多个包，每个包中间使用半角逗号分隔
+        -->
+        <property name="basePackage" value="xqfcx.mapper"/>
+        <property name="sqlSessionFactoryBeanName" value="sqlSessionFactoryXqfcx"/>
+    </bean>
+
+    <!-- 事务管理器 对mybatis操作数据库事务控制，spring使用jdbc的事务控制类 -->
+    <bean id="transactionManagerXqfcx"
+          class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="dataSourceXqfcx"/>
+    </bean>
+    <tx:annotation-driven transaction-manager="transactionManagerXqfcx"/>
+
+    <!--配置事务的传播特性 -->
+    <tx:advice id="txAdviceXqfcx" transaction-manager="transactionManagerXqfcx">
+        <tx:attributes>
+            <tx:method name="save*" propagation="REQUIRED"/>
+            <tx:method name="add*" propagation="REQUIRED"/>
+            <tx:method name="recur*" propagation="REQUIRED"/>
+            <tx:method name="do*" propagation="REQUIRED"/>
+            <tx:method name="create*" propagation="REQUIRED"/>
+            <tx:method name="insert*" propagation="REQUIRED"/>
+            <tx:method name="update*" propagation="REQUIRED"/>
+            <tx:method name="merge*" propagation="REQUIRED"/>
+            <tx:method name="delete*" propagation="REQUIRED"/>
+            <tx:method name="remove*" propagation="REQUIRED"/>
+            <tx:method name="put*" propagation="REQUIRED"/>
+            <tx:method name="publish*" propagation="REQUIRED"/>
+            <tx:method name="use*" propagation="REQUIRED"/>
+            <tx:method name="get*" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="count*" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="find*" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="page*" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="list*" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="select*" propagation="REQUIRED" read-only="true"/>
+            <tx:method name="*" read-only="true"/>
+        </tx:attributes>
+    </tx:advice>
+    <aop:aspectj-autoproxy proxy-target-class="true"/>
+    <!--那些类的哪些方法参与事务 -->
+    <aop:config>
+        <aop:advisor advice-ref="txAdviceXqfcx"
+                     pointcut="execution (* xqfcx.service..*.*(..))"/>
+    </aop:config>
+
+    <!-- 培训机构微信处理bean -->
+    <bean id="pxjgXsWxService" scope="prototype" class="cn.kiway.pxjg.jc.service.impl.PxjgXsWxServiceImpl">
+        <property name="appId" value="wx588c38c60540dd0e"/>
+        <property name="secret" value="1b99a5521eb6f656201572af8d665b0f"/>
+    </bean>
+
+    <!-- kwm消息队列连接池 -->
+    <bean id="kwMqFactory" class="cn.kiway.rabbitmq.KwRabbitMQConnectionFactory" init-method="init"
+          destroy-method="close">
+        <!--
+            uri在sys.properties文件中key名称
+            如下配置：在sys.properties中必须有个配置，JC_MQ_URI=amqp://kwmlog:kwmlog1234@192.168.88.50:5672/kwmlog才能被正常解析
+         -->
+        <property name="uriName" value="JC_MQ_URI"/>
+        <!-- uri的值，注意，如果在这里配置了uri的值，那么在sys.properties中的值将不生效，也就是说uriName配置的值不生效 -->
+        <!-- <property name="uri" value="amqp://kwmlog:kwmlog1234@192.168.88.50:5672/kwmlog" /> -->
+    </bean>
+
+    <!-- 日志生产者 -->
+    <bean id="kwmLogProducer" class="cn.kiway.rabbitmq.log.KwLogMqProducer">
+        <!-- 队列连接池 -->
+        <property name="connectionFactory" ref="kwMqFactory"/>
+        <!-- 是否开启：如果不开启，将会使用老的日志逻辑 -->
+        <!-- <property name="enable" value="true" /> -->
+        <!--
+            enable在sys.properties文件中key名称
+            如下配置：在sys.properties中必须有个配置，JC_LOG_MQ_ENABLE=true才能被正常开启
+        -->
+        <property name="enableName" value="JC_LOG_MQ_ENABLE"/>
+    </bean>
+</beans>
