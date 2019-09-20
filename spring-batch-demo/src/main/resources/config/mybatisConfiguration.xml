@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration PUBLIC "-//mybatis.org//DTD Config 3//EN"
+        "http://mybatis.org/dtd/mybatis-3-config.dtd">
+
+<configuration>
+
+    <settings>
+        <!--ehcache 做二级缓存-->
+        <!-- 全局的映射器启用或禁用缓存。 -->
+        <setting name="cacheEnabled" value="true"/>
+
+        <!-- 全局启用或禁用延迟加载 -->
+        <setting name="lazyLoadingEnabled" value="true"/>
+        <!-- 允许或不允许多种结果集从一个单独的语句中返回 -->
+        <setting name="multipleResultSetsEnabled" value="true"/>
+        <!-- 使用列标签代替列名 -->
+        <setting name="useColumnLabel" value="true"/>
+        <!-- 允许JDBC支持生成的键 -->
+        <setting name="useGeneratedKeys" value="false"/>
+        <!-- 配置默认的执行器 -->
+        <setting name="defaultExecutorType" value="SIMPLE"/>
+        <!-- 设置超时时间 -->
+        <setting name="defaultStatementTimeout" value="25000"/>
+        <!--日志实现-->
+        <setting name="logImpl" value="LOG4J2"/>
+    </settings>
+    <!-- 只用来减少类完全限定名的多余部分 -->
+
+
+    <!-- typeAliases标签 是写实体类的别名， 写了之后可以在写Sql配置文件例如<select>标签中的属性就可以不用写实体的具体路径直接用别名就可以了，
+        可以简化代码给你看个例子：没有别名这样写<select resultType="com.sjh.entity.VoteUser"> 写了别名就可以这样写<select
+        resultType="VoteUsers"> 直接写别名就可以不用再写实体的路径了， VoteUsers就能在任何地方代替“com.sjh.entity.VoteUser”被使用。
+        如果很多属性涉及到实体类，直接写别名很方便的。你说你删了程序照样跑， 写配置的时候你一定是没有应用到别名，都写得实体路径。 。 -->
+
+
+    <typeAliases>
+
+        <!--proxool连接池数据源，自定义 -->
+        <!-- <typeAlias type="fac.ProxoolDataSourceFactory" alias="proxoolData"/> -->
+
+
+    </typeAliases>
+
+
+    <!-- 与spring 集成之后,这些可以完全删除,数据库连接的管理交给 spring 去管理 -->
+    <!-- <environments default="development"> <environment id="development">
+        <transactionManager type="JDBC"/> <dataSource type="proxoolData"> </dataSource>
+        </environment> <environment id="development"> <transactionManager type="JDBC"/>
+        <dataSource type="POOLED"> <property name="driver" value="oracle.jdbc.driver.OracleDriver"/>
+        <property name="url" value="jdbc:oracle:thin:@dataPC:1521:orcl" /> <property
+        name="username" value="e_way"/> <property name="password" value="test"/>
+        </dataSource> </environment> </environments> -->
+    <!-- 这里交给sqlSessionFactory 的 mapperLocations属性去得到所有配置信息 -->
+    <!-- <mappers> <mapper resource="bean/BPerson.xml"/> </mappers> -->
+</configuration>

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.spring.batch.demo.springbatchdemo.mapper.TestBatchMapper">
+
+    <resultMap id="BaseResultMap" type="com.spring.batch.demo.springbatchdemo.bean.TestBatch">
+        <id column="SEQ_ID" jdbcType="DECIMAL" property="seqId" />
+        <result column="NAME" jdbcType="VARCHAR" property="name" />
+        <result column="AGE" jdbcType="DECIMAL" property="age" />
+        <result column="CREATE_DATE" jdbcType="DATE" property="createDate" />
+    </resultMap>
+    <sql id="Base_Column_List">
+    SEQ_ID, NAME, AGE, CREATE_DATE
+  </sql>
+
+    <insert id="batchInsert" parameterType="com.spring.batch.demo.springbatchdemo.bean.TestBatch">
+        insert into TEST_BATCH(SEQ_ID, NAME, AGE, CREATE_DATE)
+        values
+            (#{seqId,jdbcType=DECIMAL},
+            #{name,jdbcType=VARCHAR},
+            #{age,jdbcType=DECIMAL},
+            #{createDate,jdbcType=DATE}
+            )
+
+    </insert>
+
+</mapper>

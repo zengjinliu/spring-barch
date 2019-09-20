@@ -1,0 +1,19 @@
+server:
+  port: 8081
+
+
+spring:
+  datasource:
+    driver-class-name: oracle.jdbc.driver.OracleDriver
+    url: jdbc:oracle:thin:@192.168.8.113:1521:ORCL
+    username: KWM4TEST3
+    password: kwm4test3
+    type: com.alibaba.druid.pool.DruidDataSource
+  main:
+    allow-bean-definition-overriding: true
+
+mybatis:
+  mapper-locations: classpath:mapper/*Mapper.xml
+  type-aliases-package: com.spring.batch.demo.springbatchdemo.bean
+  configuration:
+    map-underscore-to-camel-case: true
