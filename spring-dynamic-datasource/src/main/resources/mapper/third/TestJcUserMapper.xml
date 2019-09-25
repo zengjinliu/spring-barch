@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.spring.dynamicdatasource.springdynamicdatasource.thirdmapper.TestJcUserMapper">
+
+    <resultMap id="BaseResultMap" type="com.spring.dynamicdatasource.springdynamicdatasource.bean.JcUser">
+        <id column="U_ID" jdbcType="DECIMAL" property="uId" />
+        <result column="U_USERNAME" jdbcType="VARCHAR" property="uUsername" />
+        <result column="U_USERID" jdbcType="VARCHAR" property="uUserid" />
+    </resultMap>
+    <sql id="Base_Column_List">
+    U_ID, U_USERNAME
+  </sql>
+
+    <insert id="insert" parameterType="com.spring.dynamicdatasource.springdynamicdatasource.bean.JcUser">
+        insert into jc_user(U_ID,U_USERID ,U_USERNAME)
+        values
+            (#{uId,jdbcType=DECIMAL},
+            #{uUserid,jdbcType=VARCHAR},
+            #{uUsername,jdbcType=VARCHAR}
+            )
+    </insert>
+
+</mapper>
