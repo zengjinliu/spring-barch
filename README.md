@@ -20,12 +20,9 @@ public class JavaBeansUtil {
     public static String getCamelCaseString(String inputString,
                                             boolean firstCharacterUppercase) {
         StringBuilder sb = new StringBuilder();
-
-```
     boolean nextUpperCase = false;
     for (int i = 0; i < inputString.length(); i++) {
         char c = inputString.charAt(i);
-
         switch (c) {
             case '_':
             case '-':
@@ -39,7 +36,6 @@ public class JavaBeansUtil {
                     nextUpperCase = true;
                 }
                 break;
-
             default:
                 if (nextUpperCase) {
                     sb.append(Character.toUpperCase(c));
@@ -50,11 +46,9 @@ public class JavaBeansUtil {
                 break;
         }
     }
-
     if (firstCharacterUppercase) {
         sb.setCharAt(0, Character.toUpperCase(sb.charAt(0)));
     }
-
     return sb.toString();
 }
 
@@ -87,15 +81,12 @@ public static <E> E transMapToObject(Map map,Class<E> destinationClass){
     }
     return entity;
 }
-```
-
 }
+
 
 public class Introspection {
     private Introspection() {
     }
-
-```
 /**
  * 获取属性的值
  * @param bean 需要内省的bean
@@ -158,7 +149,6 @@ public static Method getWriteMethod(Class<?> bean,String propertyName) throws In
     PropertyDescriptor propertyDescriptor = new PropertyDescriptor(propertyName, bean);
     return propertyDescriptor.getWriteMethod();
 }
-```
 }
 
 ```
