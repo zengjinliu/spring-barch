@@ -2,6 +2,7 @@ package post;
 
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 /**
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Component;
  * @Date 2019/7/12 16:14
  */
 @Component
+@Order(0)
 public class MyBeanPostProcessor implements BeanPostProcessor {
 
     @Override
