@@ -7,6 +7,8 @@
 #### spring-started(springboot项目)
 这是一个springboot支持Google计算引擎的简单示例(Aviator)
 
+#### spring-swagger里面包含swagger-Thread-quartz等信息
+
 #### map转bean
 ```java
 public class JavaBeansUtil {
