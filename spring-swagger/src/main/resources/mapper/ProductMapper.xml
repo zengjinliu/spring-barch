@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kiway.spring.swagger.springswagger.mapper.ProductMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.kiway.spring.swagger.springswagger.bean.Product">
+        <result column="product_id" property="productId" />
+        <result column="product_info" property="productInfo" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        product_id,product_info
+    </sql>
+
+    <insert id="insert" parameterType="com.kiway.spring.swagger.springswagger.bean.Product">
+        insert into product(product_id,product_info) values (#{productId},#{productInfo})
+    </insert>
+
+</mapper>
